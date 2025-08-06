@@ -1,100 +1,100 @@
 import streamlit as st
+import pandas as pd
 import os
-import json
 from datetime import datetime
 from PIL import Image
 
+# App title
 st.set_page_config(page_title="สแน็ป สแน็ป", layout="wide")
+st.title("📸 สแน็ป สแน็ป – IRL Pokédex")
 
-DATA_DIR = "snap_data"
-os.makedirs(DATA_DIR, exist_ok=True)
+# File paths
+SAVE_DIR = "snap_data"
+if not os.path.exists(SAVE_DIR):
+    os.makedirs(SAVE_DIR)
 
-animal_list = sorted([
-    "Alpaca", "Bat", "Bear", "Bee", "Buffalo", "Butterfly", "Capybara", "Cat", "Chicken", "Cow",
-    "Crab", "Crocodile", "Deer", "Dog", "Dolphin", "Duck", "Eagle", "Elephant", "Erawan",
-    "Frog", "Gecko", "Goat", "Goldfish", "Horse", "Hornbill", "Iguana", "Jellyfish", "Koala",
-    "Lizard", "Macaque", "Monkey", "Mosquito", "Mouse", "Octopus", "Ostrich", "Otter", "Owl",
-    "Panda", "Parrot", "Peacock", "Penguin", "Pig", "Pigeon", "Rabbit", "Raccoon", "Rat",
-    "Rooster", "Seagull", "Shark", "Sheep", "Snail", "Snake", "Spider", "Squirrel", "Tiger",
-    "Turtle", "Whale", "Yak", "Zebra", "Dabenniao", "Naga"
+# Predefined animal list (alphabetically sorted)
+ANIMALS = sorted([
+    "Alpaca", "Bat", "Buffalo", "Capybara", "Cat", "Chicken", "Cow", "Crab", "Crocodile",
+    "Dabenniao (Malayan Night Heron)", "Deer", "Dog", "Donkey", "Duck", "Eagle", "Elephant",
+    "Erawan (Three-Headed Elephant)", "Frog", "Gecko", "Goat", "Goose", "Hedgehog", "Heron", "Horse",
+    "Hornbill", "Koi Fish", "Lizard", "Macaque", "Monkey", "Mosquito", "Mouse", "Naga (Serpent)",
+    "Ostrich", "Owl", "Parrot", "Peacock", "Penguin", "Pig", "Pigeon", "Porcupine", "Rabbit",
+    "Rat", "Raven", "Rooster", "Seagull", "Sheep", "Shrimp", "Snake", "Sparrow", "Squirrel",
+    "Starling", "Swan", "Tiger", "Turtle", "Water Buffalo", "Yak", "Zebra"
 ])
 
-# --- Utility Functions ---
+# Helper function
+def get_user_filepath(username):
+    return os.path.join(SAVE_DIR, f"{username}_entries.csv")
 
-def get_user_data_file(username):
-    return os.path.join(DATA_DIR, f"{username}_pokedex.json")
+# User login
+st.sidebar.header("👤 User Login")
+username = st.sidebar.text_input("Enter your name", value="Ash")
 
-def load_user_pokedex(username):
-    filepath = get_user_data_file(username)
-    if os.path.exists(filepath):
-        with open(filepath, "r") as f:
-            return json.load(f)
-    return {}
+# Load or create user data
+user_file = get_user_filepath(username)
+if os.path.exists(user_file):
+    df = pd.read_csv(user_file)
+else:
+    df = pd.DataFrame(columns=[
+        "Animal", "Score", "Stars", "Tier", "Photo", "Latitude", "Longitude", "Location", "Timestamp"
+    ])
 
-def save_user_pokedex(username, data):
-    filepath = get_user_data_file(username)
-    with open(filepath, "w") as f:
-        json.dump(data, f, indent=2)
+# Main upload form
+st.subheader("📤 Upload a New Photo")
+with st.form("upload_form"):
+    animal = st.selectbox("Which animal did you snap?", ANIMALS)
+    score = st.number_input("Enter total score (0–6000)", min_value=0, max_value=6000, step=10)
+    stars = st.selectbox("How many stars (pose)?", [1, 2, 3, 4])
+    tier = st.selectbox("Medal rating", ["Bronze", "Silver", "Gold", "Diamond"])
+    photo = st.file_uploader("Upload photo", type=["jpg", "jpeg", "png"])
+    lat = st.text_input("Latitude", placeholder="Optional")
+    lon = st.text_input("Longitude", placeholder="Optional")
+    location_name = st.text_input("Location name", placeholder="e.g. Chatuchak Park")
+    submit = st.form_submit_button("Save Entry")
 
-def get_medal(score):
-    if score >= 4000:
-        return "💎 Diamond"
-    elif score >= 3500:
-        return "🥇 Gold"
-    elif score >= 2500:
-        return "🥈 Silver"
+    if submit and photo:
+        photo_path = os.path.join(SAVE_DIR, f"{username}_{animal}_{datetime.now().isoformat()}.jpg")
+        with open(photo_path, "wb") as f:
+            f.write(photo.read())
+
+        # Replace if better score exists
+        existing = df[df["Animal"] == animal]
+        if not existing.empty and score <= existing["Score"].max():
+            st.warning("Entry exists with equal or higher score. Not replacing.")
+        else:
+            df = df[df["Animal"] != animal]
+            new_entry = pd.DataFrame([{
+                "Animal": animal,
+                "Score": score,
+                "Stars": stars,
+                "Tier": tier,
+                "Photo": photo_path,
+                "Latitude": lat,
+                "Longitude": lon,
+                "Location": location_name,
+                "Timestamp": datetime.now().isoformat()
+            }])
+            df = pd.concat([df, new_entry], ignore_index=True)
+            df.to_csv(user_file, index=False)
+            st.success("Saved!")
+
+# Pokédex tab
+st.subheader("📘 Your Pokédex")
+for animal in ANIMALS:
+    col = st.columns([1, 4])
+    if animal in df["Animal"].values:
+        col[0].markdown("✅")
+        entry = df[df["Animal"] == animal].iloc[0]
+        if col[1].button(f"{animal} - {entry['Score']} pts ({entry['Tier']})", key=animal):
+            st.image(entry["Photo"], width=300, caption=f"{animal} ({entry['Stars']}⭐, {entry['Tier']})")
+            st.markdown(f"📍 **Location:** {entry['Location']}  \n🌐 **Coords:** {entry['Latitude']}, {entry['Longitude']}  \n🕒 **Time:** {entry['Timestamp']}")
     else:
-        return "🥉 Bronze"
+        col[0].markdown("⬜")
+        col[1].markdown(animal)
 
-# --- App Interface ---
+# GPT Rater button
+st.markdown("### 🤖 Rate your photos!")
+st.markdown("[Launch Snap Snap Photo Rater](https://chatgpt.com/g/g-6892ce3fa6e48191bee880a53eed4a09-snap-snap-photo-rater)")
 
-st.title("📸 สแน็ป สแน็ป")
-st.markdown("A real-life Pokémon Snap experience. Rate your animal encounters!")
-
-username = st.text_input("Enter your name", value="Player1")
-
-menu = st.sidebar.radio("Menu", ["📷 New Entry", "📖 Pokédex"])
-
-if menu == "📷 New Entry":
-    st.header("New Animal Photo Entry")
-
-    animal = st.selectbox("Select Animal", animal_list)
-    uploaded_file = st.file_uploader("Upload Photo", type=["jpg", "jpeg", "png"])
-    score = st.number_input("Enter Score", min_value=0, max_value=5000, value=3000, step=50)
-    stars = st.selectbox("Star Rating (Behavior)", ["⭐", "⭐⭐", "⭐⭐⭐", "⭐⭐⭐⭐"])
-    location = st.text_input("Where did you see it? (e.g., Lumpini Park, Bangkok)")
-    date_seen = st.date_input("When did you see it?", value=datetime.today())
-
-    if st.button("Save Entry") and uploaded_file:
-        pokedex = load_user_pokedex(username)
-        new_entry = {
-            "score": score,
-            "stars": stars,
-            "medal": get_medal(score),
-            "location": location,
-            "date": str(date_seen),
-            "image": uploaded_file.getvalue()
-        }
-
-        # Update only if new score is higher
-        if animal not in pokedex or score > pokedex[animal]["score"]:
-            pokedex[animal] = new_entry
-            save_user_pokedex(username, pokedex)
-            st.success(f"Entry saved for {animal}!")
-        else:
-            st.warning("You already have a higher score for this animal.")
-
-elif menu == "📖 Pokédex":
-    st.header(f"Pokédex for {username}")
-    pokedex = load_user_pokedex(username)
-
-    for animal in animal_list:
-        if animal in pokedex:
-            entry = pokedex[animal]
-            with st.expander(f"✅ {animal} - {entry['medal']} {entry['stars']}"):
-                st.image(entry["image"], width=300)
-                st.markdown(f"**Score**: {entry['score']}")
-                st.markdown(f"**Location**: {entry['location']}")
-                st.markdown(f"**Date**: {entry['date']}")
-        else:
-            st.markdown(f"🔲 {animal}")
