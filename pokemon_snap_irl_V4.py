@@ -1,147 +1,100 @@
 import streamlit as st
-import pandas as pd
 import os
-import pydeck as pdk
+import json
 from datetime import datetime
+from PIL import Image
 
-# Title
-st.set_page_config(page_title="Snap Snap IRL", layout="wide")
-st.title("📷 สแน็ป สแน็ป – Real Life Pokémon Snap")
+st.set_page_config(page_title="สแน็ป สแน็ป", layout="wide")
 
-DATA_FILE = "snap_log.csv"
+DATA_DIR = "snap_data"
+os.makedirs(DATA_DIR, exist_ok=True)
 
-# Starter animal list (60, alphabetical)
 animal_list = sorted([
-    "Alpaca", "Ant", "Bat", "Bear", "Bee", "Beetle", "Bison", "Butterfly", "Capybara", "Cat",
-    "Chicken", "Cicada", "Cobra", "Crocodile", "Dabenniao (Malayan Night Heron)", "Deer", "Dog", "Dolphin",
-    "Dragonfly", "Duck", "Eagle", "Erawan (3-headed Elephant)", "Elephant", "Frog", "Gecko", "Giraffe",
-    "Goat", "Hedgehog", "Hornbill", "Horse", "Iguana", "Koala", "Leopard", "Lizard", "Macaw", "Macaque",
-    "Monkey", "Mosquito", "Mouse", "Naga (Thai Dragon)", "Ostrich", "Owl", "Panda", "Parrot", "Peacock",
-    "Penguin", "Pig", "Pigeon", "Rabbit", "Rhinoceros", "Scorpion", "Shark", "Snake", "Spider", "Squirrel",
-    "Tiger", "Turtle", "Yak (Temple Guardian)", "Zebra"
+    "Alpaca", "Bat", "Bear", "Bee", "Buffalo", "Butterfly", "Capybara", "Cat", "Chicken", "Cow",
+    "Crab", "Crocodile", "Deer", "Dog", "Dolphin", "Duck", "Eagle", "Elephant", "Erawan",
+    "Frog", "Gecko", "Goat", "Goldfish", "Horse", "Hornbill", "Iguana", "Jellyfish", "Koala",
+    "Lizard", "Macaque", "Monkey", "Mosquito", "Mouse", "Octopus", "Ostrich", "Otter", "Owl",
+    "Panda", "Parrot", "Peacock", "Penguin", "Pig", "Pigeon", "Rabbit", "Raccoon", "Rat",
+    "Rooster", "Seagull", "Shark", "Sheep", "Snail", "Snake", "Spider", "Squirrel", "Tiger",
+    "Turtle", "Whale", "Yak", "Zebra", "Dabenniao", "Naga"
 ])
 
-# Load or create data
-if os.path.exists(DATA_FILE):
-    df = pd.read_csv(DATA_FILE)
-else:
-    df = pd.DataFrame(columns=["Name", "Animal", "Photo", "Pose", "Size", "Direction", "Placement", "Other", "Total", "Place", "Lat", "Lon", "Timestamp"])
-    df.to_csv(DATA_FILE, index=False)
+# --- Utility Functions ---
 
-# Sidebar navigation
-page = st.sidebar.radio("Navigation", ["Add Entry", "Pokédex", "Map", "Delete Entry"])
+def get_user_data_file(username):
+    return os.path.join(DATA_DIR, f"{username}_pokedex.json")
 
-# Add Entry
-if page == "Add Entry":
-    st.header("📸 Add a New Photo Entry")
-    with st.form("entry_form"):
-        name = st.text_input("Your Name")
-        animal = st.selectbox("Animal", animal_list)
-        photo = st.file_uploader("Upload Photo (optional)", type=["jpg", "png", "jpeg"])
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            pose = st.slider("Pose", 0, 1000, 500)
-            size = st.slider("Size", 0, 1000, 500)
-        with col2:
-            direction = st.slider("Direction", 0, 1000, 500)
-            placement = st.slider("Placement", 0, 1000, 500)
-        with col3:
-            other = st.slider("Other", 0, 1000, 500)
-            place = st.text_input("Place name (e.g. Lumphini Park)")
-            lat = st.number_input("Latitude", format="%.6f")
-            lon = st.number_input("Longitude", format="%.6f")
+def load_user_pokedex(username):
+    filepath = get_user_data_file(username)
+    if os.path.exists(filepath):
+        with open(filepath, "r") as f:
+            return json.load(f)
+    return {}
 
-        submitted = st.form_submit_button("Save Entry")
+def save_user_pokedex(username, data):
+    filepath = get_user_data_file(username)
+    with open(filepath, "w") as f:
+        json.dump(data, f, indent=2)
 
-    if submitted:
-        if not name or not animal:
-            st.warning("Please enter your name and select an animal.")
+def get_medal(score):
+    if score >= 4000:
+        return "💎 Diamond"
+    elif score >= 3500:
+        return "🥇 Gold"
+    elif score >= 2500:
+        return "🥈 Silver"
+    else:
+        return "🥉 Bronze"
+
+# --- App Interface ---
+
+st.title("📸 สแน็ป สแน็ป")
+st.markdown("A real-life Pokémon Snap experience. Rate your animal encounters!")
+
+username = st.text_input("Enter your name", value="Player1")
+
+menu = st.sidebar.radio("Menu", ["📷 New Entry", "📖 Pokédex"])
+
+if menu == "📷 New Entry":
+    st.header("New Animal Photo Entry")
+
+    animal = st.selectbox("Select Animal", animal_list)
+    uploaded_file = st.file_uploader("Upload Photo", type=["jpg", "jpeg", "png"])
+    score = st.number_input("Enter Score", min_value=0, max_value=5000, value=3000, step=50)
+    stars = st.selectbox("Star Rating (Behavior)", ["⭐", "⭐⭐", "⭐⭐⭐", "⭐⭐⭐⭐"])
+    location = st.text_input("Where did you see it? (e.g., Lumpini Park, Bangkok)")
+    date_seen = st.date_input("When did you see it?", value=datetime.today())
+
+    if st.button("Save Entry") and uploaded_file:
+        pokedex = load_user_pokedex(username)
+        new_entry = {
+            "score": score,
+            "stars": stars,
+            "medal": get_medal(score),
+            "location": location,
+            "date": str(date_seen),
+            "image": uploaded_file.getvalue()
+        }
+
+        # Update only if new score is higher
+        if animal not in pokedex or score > pokedex[animal]["score"]:
+            pokedex[animal] = new_entry
+            save_user_pokedex(username, pokedex)
+            st.success(f"Entry saved for {animal}!")
         else:
-            total = pose + size + direction + placement + other
-            timestamp = datetime.now().isoformat()
-            new_row = {
-                "Name": name, "Animal": animal, "Photo": photo.name if photo else "",
-                "Pose": pose, "Size": size, "Direction": direction, "Placement": placement,
-                "Other": other, "Total": total, "Place": place, "Lat": lat, "Lon": lon,
-                "Timestamp": timestamp
-            }
+            st.warning("You already have a higher score for this animal.")
 
-            # Check for existing better score for same name/animal
-            match = (df["Name"] == name) & (df["Animal"] == animal)
-            if match.any():
-                if total > df.loc[match, "Total"].max():
-                    df = df[~match]
-                    df.loc[len(df)] = new_row
-                    st.success(f"✅ Updated! Higher score: {total}")
-                else:
-                    st.info("📉 You already have a higher-scoring entry. Not saved.")
-            else:
-                df.loc[len(df)] = new_row
-                st.success(f"✅ Saved with total score: {total}")
-
-            df.to_csv(DATA_FILE, index=False)
-
-# Pokédex
-elif page == "Pokédex":
-    st.header("📖 Pokédex")
-
-    user_filter = st.selectbox("Choose Player", ["All Users"] + sorted(df["Name"].unique()))
-
-    filtered_df = df if user_filter == "All Users" else df[df["Name"] == user_filter]
-
-    seen = filtered_df["Animal"].unique()
+elif menu == "📖 Pokédex":
+    st.header(f"Pokédex for {username}")
+    pokedex = load_user_pokedex(username)
 
     for animal in animal_list:
-        if animal in seen:
-            best_entry = filtered_df[filtered_df["Animal"] == animal].sort_values("Total", ascending=False).iloc[0]
-            st.markdown(f"✅ **{animal}** – {best_entry['Total']} pts ({best_entry['Name']})")
+        if animal in pokedex:
+            entry = pokedex[animal]
+            with st.expander(f"✅ {animal} - {entry['medal']} {entry['stars']}"):
+                st.image(entry["image"], width=300)
+                st.markdown(f"**Score**: {entry['score']}")
+                st.markdown(f"**Location**: {entry['location']}")
+                st.markdown(f"**Date**: {entry['date']}")
         else:
             st.markdown(f"🔲 {animal}")
-
-# Map
-elif page == "Map":
-    st.header("🗺️ Snap Map")
-
-    if len(df) == 0:
-        st.info("No entries with location yet.")
-    else:
-        mappable_df = df.dropna(subset=["Lat", "Lon"])
-        if len(mappable_df) == 0:
-            st.info("No location data available.")
-        else:
-            st.dataframe(mappable_df[["Name", "Animal", "Place", "Lat", "Lon"]])
-
-            st.pydeck_chart(pdk.Deck(
-                map_style="mapbox://styles/mapbox/streets-v12",
-                initial_view_state=pdk.ViewState(
-                    latitude=mappable_df["Lat"].mean(),
-                    longitude=mappable_df["Lon"].mean(),
-                    zoom=6,
-                    pitch=0,
-                ),
-                layers=[
-                    pdk.Layer(
-                        "ScatterplotLayer",
-                        data=mappable_df,
-                        get_position='[Lon, Lat]',
-                        get_color='[200, 30, 0, 160]',
-                        get_radius=30000,
-                        pickable=True
-                    )
-                ],
-                tooltip={"text": "{Name} saw {Animal} at {Place}"}
-            ))
-
-# Delete
-elif page == "Delete Entry":
-    st.header("🗑️ Delete an Entry")
-    if df.empty:
-        st.info("No entries to delete.")
-    else:
-        name = st.selectbox("Your Name", sorted(df["Name"].unique()))
-        animal = st.selectbox("Animal", sorted(df[df["Name"] == name]["Animal"].unique()))
-        delete = st.button("Delete Entry")
-        if delete:
-            df = df[~((df["Name"] == name) & (df["Animal"] == animal))]
-            df.to_csv(DATA_FILE, index=False)
-            st.success(f"Deleted {animal} entry for {name}.")
