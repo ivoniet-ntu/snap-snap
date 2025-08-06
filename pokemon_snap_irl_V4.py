@@ -44,7 +44,7 @@ else:
 # Main upload form
 st.subheader("📤 Upload a New Photo")
 with st.form("upload_form"):
-    animal = st.selectbox("Which animal did you snap?", ANIMALS)
+    animal = st.selectbox("Which animal did you snap?", animal_list)
     score = st.number_input("Enter total score (0–6000)", min_value=0, max_value=6000, step=10)
     stars = st.selectbox("How many stars (pose)?", [1, 2, 3, 4])
     tier = st.selectbox("Medal rating", ["Bronze", "Silver", "Gold", "Diamond"])
@@ -82,7 +82,7 @@ with st.form("upload_form"):
 
 # Pokédex tab
 st.subheader("📘 Your Pokédex")
-for animal in ANIMALS:
+for animal in animal_list:
     col = st.columns([1, 4])
     if animal in df["Animal"].values:
         col[0].markdown("✅")
@@ -97,5 +97,6 @@ for animal in ANIMALS:
 # GPT Rater button
 st.markdown("### 🤖 Rate your photos!")
 st.markdown("[Launch Snap Snap Photo Rater](https://chatgpt.com/g/g-6892ce3fa6e48191bee880a53eed4a09-snap-snap-photo-rater)")
+
 
 
