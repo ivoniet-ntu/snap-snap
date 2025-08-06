@@ -14,14 +14,14 @@ if not os.path.exists(SAVE_DIR):
     os.makedirs(SAVE_DIR)
 
 # Predefined animal list (alphabetically sorted)
-ANIMALS = sorted([
-    "Alpaca", "Bat", "Buffalo", "Capybara", "Cat", "Chicken", "Cow", "Crab", "Crocodile",
-    "Dabenniao (Malayan Night Heron)", "Deer", "Dog", "Donkey", "Duck", "Eagle", "Elephant",
-    "Erawan (Three-Headed Elephant)", "Frog", "Gecko", "Goat", "Goose", "Hedgehog", "Heron", "Horse",
-    "Hornbill", "Koi Fish", "Lizard", "Macaque", "Monkey", "Mosquito", "Mouse", "Naga (Serpent)",
-    "Ostrich", "Owl", "Parrot", "Peacock", "Penguin", "Pig", "Pigeon", "Porcupine", "Rabbit",
-    "Rat", "Raven", "Rooster", "Seagull", "Sheep", "Shrimp", "Snake", "Sparrow", "Squirrel",
-    "Starling", "Swan", "Tiger", "Turtle", "Water Buffalo", "Yak", "Zebra"
+animal_list = sorted([
+    "Alpaca", "Bat", "Bear", "Bee", "Buffalo", "Butterfly", "Capybara", "Cat", "Chicken", "Cow",
+    "Crab", "Crocodile", "Dabenniao", "Deer", "Dog", "Dolphin", "Dragonfly", "Duck", "Eagle", 
+    "Elephant", "Erawan", "Frog", "Gecko", "Goat", "Goldfish", "Horse", "Hornbill", "Iguana", 
+    "Jellyfish", "Koala", "Lizard", "Macaque", "Monkey", "Mosquito", "Mouse", "Naga", "Octopus", 
+    "Ostrich", "Otter", "Owl", "Panda", "Parrot", "Peacock", "Penguin", "Pig", "Pigeon", "Rabbit", 
+    "Raccoon", "Rat", "Rooster", "Seagull", "Shark", "Sheep", "Snail", "Snake", "Spider", 
+    "Squirrel", "Tiger", "Tokay Gecko", "Turtle", "Water Monitor", "Whale", "Yak", "Zebra"
 ])
 
 # Helper function
@@ -97,4 +97,5 @@ for animal in ANIMALS:
 # GPT Rater button
 st.markdown("### 🤖 Rate your photos!")
 st.markdown("[Launch Snap Snap Photo Rater](https://chatgpt.com/g/g-6892ce3fa6e48191bee880a53eed4a09-snap-snap-photo-rater)")
+
 
