@@ -28,12 +28,15 @@ def save_entry(df, user_file):
     df.to_csv(user_file, index=False)
 
 # --- Sidebar Navigation ---
-st.sidebar.header("👤 Player Login")
-username = st.sidebar.text_input("Enter your name").strip()
+st.title("📸 สแน็ป สแน็ป – IRL Pokédex")
 
+# --- Login Section on Main Page ---
+username = st.text_input("👤 Enter your name to begin:")
 if not username:
     st.warning("Please enter your name to continue.")
     st.stop()
+
+st.success(f"Welcome, {username}!")
 
 user_file = get_user_filepath(username)
 if os.path.exists(user_file):
@@ -110,3 +113,4 @@ elif page == "🤖 Photo Rater":
     st.title("🤖 Rate your photos!")
     st.markdown("Use the Snap Snap GPT to get a score suggestion:")
     st.markdown("[Launch Snap Snap Photo Rater](https://chatgpt.com/g/g-6892ce3fa6e48191bee880a53eed4a09-snap-snap-photo-rater)")
+
